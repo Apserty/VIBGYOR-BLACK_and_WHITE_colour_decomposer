@@ -1,0 +1,7 @@
+flask
+numpy
+scipy
+requests
+python-dotenv
+webcolors
+matplotlib

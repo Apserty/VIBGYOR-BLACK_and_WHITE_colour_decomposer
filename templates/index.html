@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIBGYOR Paint Decomposer & Mixer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --radius: 14px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 8px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 2.5rem 1rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 1.75rem;
+        }
+
+        header h1 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            margin-top: 0.35rem;
+        }
+
+        .input-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .color-picker-wrapper {
+            position: relative;
+            width: 48px;
+            height: 46px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            overflow: hidden;
+            flex-shrink: 0;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+
+        input[type="color"] {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 11px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background: white;
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+
+        button.btn-primary {
+            padding: 11px 22px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.05s ease;
+            white-space: nowrap;
+        }
+
+        button.btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        button.btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        button.btn-primary:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .preset-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .preset-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .chip {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .chip:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #eef2ff;
+        }
+
+        #result-area {
+            display: none;
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .target-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 1.2rem;
+            background: var(--bg);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 1.25rem;
+        }
+
+        .color-swatch-lg {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            flex-shrink: 0;
+        }
+
+        .target-meta h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            text-transform: capitalize;
+            color: var(--text-main);
+        }
+
+        .target-meta-codes {
+            display: flex;
+            gap: 12px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+
+        .target-meta-codes code {
+            font-family: monospace;
+            background: white;
+            padding: 2px 7px;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .recipe-banner {
+            background: #f0fdf4;
+            border: 1.5px solid #86efac;
+            border-radius: 10px;
+            padding: 1.1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .recipe-badge {
+            display: inline-block;
+            background: #16a34a;
+            color: white;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .recipe-formula {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #14532d;
+            line-height: 1.35;
+        }
+
+        .recipe-hint {
+            font-size: 0.85rem;
+            color: #166534;
+            margin-top: 4px;
+        }
+
+        .section-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ratio-bar {
+            display: flex;
+            height: 28px;
+            border-radius: 7px;
+            overflow: hidden;
+            background: #e2e8f0;
+            border: 1px solid var(--border);
+            margin-bottom: 1.25rem;
+        }
+
+        .ratio-segment {
+            height: 100%;
+            transition: width 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .ratio-segment.light-text {
+            color: #1e293b;
+            text-shadow: none;
+        }
+
+        .calculator-card {
+            background: #faf5ff;
+            border: 1px solid #e9d5ff;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .calc-header {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #581c87;
+            margin-bottom: 8px;
+        }
+
+        .calc-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .calc-controls label {
+            font-size: 0.85rem;
+            color: #6b21a8;
+            font-weight: 500;
+        }
+
+        .calc-input {
+            width: 90px;
+            padding: 7px 10px;
+            border: 1.5px solid #d8b4fe;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: white;
+            font-weight: 600;
+            color: #4c1d95;
+            outline: none;
+        }
+
+        .calc-input:focus {
+            border-color: #9333ea;
+        }
+
+        .calc-select {
+            padding: 7px 10px;
+            border: 1.5px solid #d8b4fe;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            background: white;
+            color: #4c1d95;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .pigment-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .pigment-table th {
+            text-align: left;
+            padding: 8px 10px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 1.5px solid var(--border);
+        }
+
+        .pigment-table td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: middle;
+        }
+
+        .pigment-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .color-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.15);
+            flex-shrink: 0;
+        }
+
+        .parts-badge {
+            display: inline-block;
+            background: #eef2ff;
+            color: #3730a3;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .pct-badge {
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .batch-val {
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 0;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .toggle-btn:hover {
+            text-decoration: underline;
+        }
+
+        .tips-box {
+            background: #fffbeb;
+            border: 1px solid #fef3c7;
+            border-radius: 8px;
+            padding: 0.85rem 1rem;
+            font-size: 0.82rem;
+            color: #92400e;
+            line-height: 1.45;
+        }
+
+        .tips-box strong {
+            color: #78350f;
+        }
+
+        .all-colors-table {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>VIBGYOR Paint Mixer & Decomposer</h1>
+            <p>Practical paint pigment mixing recipes from 9 base colors</p>
+        </header>
+        
+        <div class="input-card">
+            <div class="input-row">
+                <div class="color-picker-wrapper" title="Click to pick color">
+                    <input type="color" id="pickerInput" value="#7FFFD4" oninput="syncFromPicker(this.value)">
+                </div>
+                <input type="text" id="colorInput" placeholder="Enter color name, hex (#7FFFD4)..." value="aquamarine" onkeydown="if(event.key==='Enter') analyzeColor()" />
+                <button id="analyzeBtn" class="btn-primary" onclick="analyzeColor()">Analyze</button>
+            </div>
+            
+            <div class="preset-chips">
+                <span class="preset-label">Try:</span>
+                <span class="chip" onclick="setPreset('aquamarine', '#7FFFD4')">Aquamarine</span>
+                <span class="chip" onclick="setPreset('parrot green', '#32CD32')">Parrot Green</span>
+                <span class="chip" onclick="setPreset('sky blue', '#87CEEB')">Sky Blue</span>
+                <span class="chip" onclick="setPreset('coral red', '#FF7F50')">Coral</span>
+                <span class="chip" onclick="setPreset('teal', '#008080')">Teal</span>
+                <span class="chip" onclick="setPreset('lavender', '#E6E6FA')">Lavender</span>
+                <span class="chip" onclick="setPreset('olive green', '#808000')">Olive</span>
+            </div>
+        </div>
+
+        <div id="result-area">
+            <!-- Target Summary -->
+            <div class="target-header">
+                <div id="targetSwatch" class="color-swatch-lg"></div>
+                <div class="target-meta">
+                    <h3 id="targetName">Color Name</h3>
+                    <div class="target-meta-codes">
+                        <span>Hex: <code id="targetHex">#000000</code></span>
+                        <span>RGB: <code id="targetRGB">0, 0, 0</code></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Practical Paint Recipe Banner -->
+            <div class="recipe-banner">
+                <div class="recipe-badge">Practical Paint Recipe</div>
+                <div id="recipeFormula" class="recipe-formula">1 part Blue + 3 parts Green + 6 parts White</div>
+                <div id="recipeHint" class="recipe-hint">Total: 10 parts (e.g. 1 drop Blue, 3 drops Green, 6 drops White)</div>
+            </div>
+
+            <!-- Proportional Visual Mixing Bar -->
+            <div class="section-title">
+                <span>Color Proportion:</span>
+            </div>
+            <div id="ratioVisual" class="ratio-bar"></div>
+
+            <!-- Batch Paint Calculator -->
+            <div class="calculator-card">
+                <div class="calc-header">Batch Quantity Calculator</div>
+                <div class="calc-controls">
+                    <label for="batchAmount">I want to make:</label>
+                    <input type="number" id="batchAmount" class="calc-input" value="10" min="1" step="any" oninput="updateBatchCalculations()" />
+                    <select id="batchUnit" class="calc-select" onchange="updateBatchCalculations()">
+                        <option value="drops" selected>drops</option>
+                        <option value="ml">ml (milliliters)</option>
+                        <option value="grams">grams (g)</option>
+                        <option value="parts">parts / scoops</option>
+                        <option value="oz">fl oz</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Pigments Table -->
+            <div class="section-title">
+                <span>Pigment Breakdown:</span>
+            </div>
+            <table class="pigment-table">
+                <thead>
+                    <tr>
+                        <th>Pigment</th>
+                        <th>Practical Parts</th>
+                        <th>Exact Ratio</th>
+                        <th>Batch Measurement</th>
+                    </tr>
+                </thead>
+                <tbody id="activePigmentList">
+                    <!-- Active pigments injected dynamically -->
+                </tbody>
+            </table>
+
+            <!-- Toggle for all 9 palette colors -->
+            <button id="toggleAllBtn" class="toggle-btn" onclick="toggleAllColors()">Show Full 9-Color Palette Breakdown</button>
+            <div id="allColorsWrapper" class="all-colors-table">
+                <table class="pigment-table">
+                    <thead>
+                        <tr>
+                            <th>Base Palette Color</th>
+                            <th>Parts</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allColorsList"></tbody>
+                </table>
+            </div>
+
+            <!-- Real-Life Mixing Tip -->
+            <div class="tips-box">
+                <strong>Real-Life Paint Mixing Tip:</strong> Always start by putting the lightest pigment (usually White) into your mixing container first, then gradually add darker concentrated pigments (like Green or Blue) drop-by-drop until you reach the exact shade.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const VIBGYOR_PALETTE = {
+            'Violet': '#9400D3', 
+            'Indigo': '#4B0082', 
+            'Blue':   '#0000FF',
+            'Green':  '#00FF00', 
+            'Yellow': '#FFFF00', 
+            'Orange': '#FF7F00',
+            'Red':    '#FF0000', 
+            'Black':  '#000000', 
+            'White':  '#FFFFFF'
+        };
+        const PALETTE_ORDER = ['Violet', 'Indigo', 'Blue', 'Green', 'Yellow', 'Orange', 'Red', 'Black', 'White'];
+
+        let currentAnalysis = null;
+
+        function syncFromPicker(hex) {
+            document.getElementById('colorInput').value = hex;
+        }
+
+        function setPreset(name, hex) {
+            document.getElementById('colorInput').value = name;
+            document.getElementById('pickerInput').value = hex;
+            analyzeColor();
+        }
+
+        function isColorLight(hex) {
+            if (!hex || !hex.startsWith('#')) return false;
+            const r = parseInt(hex.slice(1, 3), 16) || 0;
+            const g = parseInt(hex.slice(3, 5), 16) || 0;
+            const b = parseInt(hex.slice(5, 7), 16) || 0;
+            return (r * 0.299 + g * 0.587 + b * 0.114) > 175;
+        }
+
+        async function analyzeColor() {
+            const input = document.getElementById('colorInput').value.trim();
+            if (!input) return;
+
+            const btn = document.getElementById('analyzeBtn');
+            btn.textContent = "Mixing...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ color: input })
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                currentAnalysis = data;
+                renderResults(data);
+            } catch (err) {
+                alert("Error connecting to paint decomposition engine.");
+            } finally {
+                btn.textContent = "Analyze";
+                btn.disabled = false;
+            }
+        }
+
+        function renderResults(data) {
+            document.getElementById('result-area').style.display = 'block';
+
+            // Target Header
+            const hex = data.hex || '#000000';
+            document.getElementById('targetSwatch').style.backgroundColor = hex;
+            document.getElementById('targetName').textContent = data.input;
+            document.getElementById('targetHex').textContent = hex;
+            
+            const rgb = data.rgb || [0, 0, 0];
+            document.getElementById('targetRGB').textContent = `${rgb[0]}, ${rgb[1]}, ${rgb[2]}`;
+
+            if (hex.startsWith('#')) {
+                document.getElementById('pickerInput').value = hex;
+            }
+
+            // Recipe Banner
+            const parts = data.ratio || {};
+            const totalParts = data.ratio_info?.total_parts || Object.values(parts).reduce((a, b) => a + b, 0) || 1;
+            const recipeStr = data.ratio_info?.recipe || Object.entries(parts).map(([k, v]) => `${v} part${v > 1 ? 's' : ''} ${k}`).join(' + ');
+
+            document.getElementById('recipeFormula').textContent = recipeStr;
+            document.getElementById('recipeHint').textContent = `Total: ${totalParts} parts (e.g., ${Object.entries(parts).map(([k, v]) => `${v} drop${v > 1 ? 's' : ''} ${k}`).join(', ')})`;
+
+            // Proportion Visual Bar
+            const visual = document.getElementById('ratioVisual');
+            visual.innerHTML = '';
+            const pcts = data.percentages || {};
+
+            for (const [color, pct] of Object.entries(pcts)) {
+                if (pct <= 0) continue;
+                const seg = document.createElement('div');
+                seg.className = `ratio-segment ${isColorLight(VIBGYOR_PALETTE[color]) ? 'light-text' : ''}`;
+                seg.style.width = `${pct}%`;
+                seg.style.backgroundColor = VIBGYOR_PALETTE[color];
+                if (color === 'White') {
+                    seg.style.border = '1px solid #cbd5e1';
+                }
+                seg.title = `${color}: ${pct}%`;
+                seg.textContent = pct >= 8 ? `${color} ${pct}%` : `${pct}%`;
+                visual.appendChild(seg);
+            }
+
+            // Update Dynamic Batch Table
+            updateBatchCalculations();
+
+            // Render Full 9-Palette Table
+            const allTable = document.getElementById('allColorsList');
+            allTable.innerHTML = '';
+            for (const col of PALETTE_ORDER) {
+                const partVal = parts[col] ?? 0;
+                const pctVal = pcts[col] ?? 0;
+                allTable.innerHTML += `
+                    <tr>
+                        <td>
+                            <div class="pigment-cell">
+                                <span class="color-dot" style="background:${VIBGYOR_PALETTE[col]};"></span>
+                                ${col}
+                            </div>
+                        </td>
+                        <td><strong>${partVal}</strong></td>
+                        <td>${pctVal}%</td>
+                    </tr>
+                `;
+            }
+        }
+
+        function updateBatchCalculations() {
+            if (!currentAnalysis) return;
+
+            const batchInput = parseFloat(document.getElementById('batchAmount').value) || 0;
+            const unit = document.getElementById('batchUnit').value;
+            const parts = currentAnalysis.ratio || {};
+            const pcts = currentAnalysis.percentages || {};
+            const totalParts = currentAnalysis.ratio_info?.total_parts || 1;
+
+            const activeList = document.getElementById('activePigmentList');
+            activeList.innerHTML = '';
+
+            for (const [color, partVal] of Object.entries(parts)) {
+                if (partVal <= 0) continue;
+                const pct = pcts[color] ?? 0;
+                
+                // Calculate amount based on unit type:
+                // If unit is drops/parts, scale proportional to total parts; if continuous (ml/g), scale by exact percentage
+                let batchFormatted = '';
+                if (unit === 'drops' || unit === 'parts') {
+                    const scaled = (partVal / totalParts) * batchInput;
+                    const roundScaled = Math.round(scaled * 10) / 10;
+                    batchFormatted = `${roundScaled} ${unit}`;
+                } else {
+                    const scaled = (pct / 100) * batchInput;
+                    const roundScaled = Math.round(scaled * 10) / 10;
+                    batchFormatted = `${roundScaled} ${unit}`;
+                }
+
+                activeList.innerHTML += `
+                    <tr>
+                        <td>
+                            <div class="pigment-cell">
+                                <span class="color-dot" style="background:${VIBGYOR_PALETTE[color]};"></span>
+                                ${color}
+                            </div>
+                        </td>
+                        <td><span class="parts-badge">${partVal} part${partVal > 1 ? 's' : ''}</span></td>
+                        <td><span class="pct-badge">${pct}%</span></td>
+                        <td><span class="batch-val">${batchFormatted}</span></td>
+                    </tr>
+                `;
+            }
+        }
+
+        function toggleAllColors() {
+            const wrap = document.getElementById('allColorsWrapper');
+            const btn = document.getElementById('toggleAllBtn');
+            if (wrap.style.display === 'block') {
+                wrap.style.display = 'none';
+                btn.textContent = 'Show Full 9-Color Palette Breakdown';
+            } else {
+                wrap.style.display = 'block';
+                btn.textContent = 'Hide Full Palette Breakdown';
+            }
+        }
+    </script>
+</body>
+</html>
